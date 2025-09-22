@@ -1,13 +1,11 @@
 package com.qd33.bilibili_analysis.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "up_stat",
         uniqueConstraints = @UniqueConstraint(columnNames = {"up_id", "record_date"}))
-@Data
 public class UpStat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,4 +18,20 @@ public class UpStat {
     private LocalDate recordDate;
     private Long followerCount;
     private Long totalViewCount;
+
+    // Getter and Setter methods
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Up getUp() { return up; }
+    public void setUp(Up up) { this.up = up; }
+
+    public LocalDate getRecordDate() { return recordDate; }
+    public void setRecordDate(LocalDate recordDate) { this.recordDate = recordDate; }
+
+    public Long getFollowerCount() { return followerCount; }
+    public void setFollowerCount(Long followerCount) { this.followerCount = followerCount; }
+
+    public Long getTotalViewCount() { return totalViewCount; }
+    public void setTotalViewCount(Long totalViewCount) { this.totalViewCount = totalViewCount; }
 }

@@ -1,4 +1,4 @@
-package com.qd33.bilibili_analysis.controller; // 注意：你的包名是bilibili_analysis
+package com.qd33.bilibili_analysis.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
