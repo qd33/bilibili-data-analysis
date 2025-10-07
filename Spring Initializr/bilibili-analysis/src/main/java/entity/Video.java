@@ -10,17 +10,21 @@ public class Video {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(name = "bv_id", unique = true, nullable = false)
     private String bvId;
 
+    @Column(name = "title")
     private String title;
 
     @ManyToOne
     @JoinColumn(name = "up_id")
     private Up up;
 
+    @Column(name = "publish_time")
     private LocalDateTime publishTime;
-    private String partition;
+
+    @Column(name = "video_partition")  // 修改字段名，避免使用MySQL关键字
+    private String videoPartition;
 
     // Getter and Setter methods
     public Long getId() { return id; }
@@ -38,6 +42,6 @@ public class Video {
     public LocalDateTime getPublishTime() { return publishTime; }
     public void setPublishTime(LocalDateTime publishTime) { this.publishTime = publishTime; }
 
-    public String getPartition() { return partition; }
-    public void setPartition(String partition) { this.partition = partition; }
+    public String getVideoPartition() { return videoPartition; }
+    public void setVideoPartition(String videoPartition) { this.videoPartition = videoPartition; }
 }

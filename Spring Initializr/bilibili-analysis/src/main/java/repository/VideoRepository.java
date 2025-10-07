@@ -9,5 +9,10 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     Optional<Video> findByBvId(String bvId);
     boolean existsByBvId(String bvId);
     List<Video> findByUpUid(String upUid);
-    List<Video> findByPartition(String partition);
+
+    // ❌ 原来的问题代码：
+    // List<Video> findByPartition(String partition);
+
+    // ✅ 修改为：
+    List<Video> findByVideoPartition(String videoPartition);
 }
