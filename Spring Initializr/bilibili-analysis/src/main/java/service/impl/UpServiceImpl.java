@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -93,27 +94,54 @@ public class UpServiceImpl implements UpService {
         Map<String, Object> result = new HashMap<>();
 
         try {
-            UpStat upStat = (UpStat) upStatObj;
-            String uid = upStat.getUp().getUid();
-            LocalDate recordDate = upStat.getRecordDate();
+            if (upStatObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> statData = (Map<String, Object>) upStatObj;
 
-            List<UpStat> existingStats = upStatRepository
-                    .findByUpUidAndRecordDateBetween(uid, recordDate, recordDate);
+                // 获取UID并查找UP主
+                String uid = (String) statData.get("uid");
+                Optional<Up> upOpt = upRepository.findByUid(uid);
 
-            if (!existingStats.isEmpty()) {
-                UpStat existing = existingStats.get(0);
-                existing.setFollowerCount(upStat.getFollowerCount());
-                existing.setTotalViewCount(upStat.getTotalViewCount());
+                if (!upOpt.isPresent()) {
+                    result.put("success", false);
+                    result.put("message", "UP主不存在，请先保存UP主基本信息");
+                    return result;
+                }
 
-                upStatRepository.save(existing);
-                result.put("message", "统计数据已更新");
-            } else {
+                Up up = upOpt.get();
+                LocalDate recordDate = LocalDate.parse(statData.get("recordDate").toString());
+
+                // 检查是否已存在相同日期的数据
+                List<UpStat> existingStats = upStatRepository
+                        .findByUpUidAndRecordDateBetween(uid, recordDate, recordDate);
+
+                UpStat upStat;
+                if (!existingStats.isEmpty()) {
+                    // 更新现有数据
+                    upStat = existingStats.get(0);
+                    result.put("message", "统计数据已更新");
+                } else {
+                    // 创建新数据
+                    upStat = new UpStat();
+                    upStat.setUp(up);
+                    upStat.setRecordDate(recordDate);
+                    result.put("message", "统计数据已保存");
+                }
+
+                // 设置统计数据
+                upStat.setFollowerCount(Long.valueOf(statData.get("followerCount").toString()));
+                upStat.setTotalViewCount(Long.valueOf(statData.get("totalViewCount").toString()));
+
                 upStatRepository.save(upStat);
-                result.put("message", "统计数据已保存");
+                result.put("success", true);
+                result.put("upStat", upStat);
+
+                System.out.println("成功保存UP主统计: " + uid + " - " + recordDate);
+            } else {
+                result.put("success", false);
+                result.put("message", "数据格式错误");
             }
 
-            result.put("success", true);
-            System.out.println("成功保存UP主统计: " + uid);
         } catch (Exception e) {
             System.err.println("保存UP主统计失败: " + e.getMessage());
             result.put("success", false);

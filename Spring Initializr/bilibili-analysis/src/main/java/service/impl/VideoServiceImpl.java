@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -29,7 +30,6 @@ public class VideoServiceImpl implements VideoService {
         Map<String, Object> result = new HashMap<>();
 
         try {
-            // 使用Repository查询视频
             boolean exists = videoRepository.existsByBvId(bvId);
 
             if (!exists) {
@@ -38,7 +38,6 @@ public class VideoServiceImpl implements VideoService {
                 return result;
             }
 
-            // 获取视频详情
             Video video = videoRepository.findByBvId(bvId).get();
             List<VideoStat> stats = videoStatRepository.findByVideoBvIdOrderByRecordDateAsc(bvId);
 
@@ -95,35 +94,59 @@ public class VideoServiceImpl implements VideoService {
         Map<String, Object> result = new HashMap<>();
 
         try {
-            VideoStat videoStat = (VideoStat) videoStatObj;
-            String bvId = videoStat.getVideo().getBvId();
-            LocalDate recordDate = videoStat.getRecordDate();
+            if (videoStatObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> statData = (Map<String, Object>) videoStatObj;
 
-            // 检查是否已存在相同日期的数据
-            List<VideoStat> existingStats = videoStatRepository
-                    .findByVideoBvIdAndRecordDateBetween(bvId, recordDate, recordDate);
+                // 获取BV号并查找视频
+                String bvId = (String) statData.get("bvId");
+                Optional<Video> videoOpt = videoRepository.findByBvId(bvId);
 
-            if (!existingStats.isEmpty()) {
-                // 更新现有数据
-                VideoStat existing = existingStats.get(0);
-                existing.setViewCount(videoStat.getViewCount());
-                existing.setLikeCount(videoStat.getLikeCount());
-                existing.setCoinCount(videoStat.getCoinCount());
-                existing.setFavoriteCount(videoStat.getFavoriteCount());
-                existing.setDanmakuCount(videoStat.getDanmakuCount());
-                existing.setReplyCount(videoStat.getReplyCount());
-                existing.setShareCount(videoStat.getShareCount());
+                if (!videoOpt.isPresent()) {
+                    result.put("success", false);
+                    result.put("message", "视频不存在，请先保存视频基本信息");
+                    return result;
+                }
 
-                videoStatRepository.save(existing);
-                result.put("message", "统计数据已更新");
-            } else {
-                // 新增数据
+                Video video = videoOpt.get();
+                LocalDate recordDate = LocalDate.parse(statData.get("recordDate").toString());
+
+                // 检查是否已存在相同日期的数据
+                List<VideoStat> existingStats = videoStatRepository
+                        .findByVideoBvIdAndRecordDateBetween(bvId, recordDate, recordDate);
+
+                VideoStat videoStat;
+                if (!existingStats.isEmpty()) {
+                    // 更新现有数据
+                    videoStat = existingStats.get(0);
+                    result.put("message", "统计数据已更新");
+                } else {
+                    // 创建新数据
+                    videoStat = new VideoStat();
+                    videoStat.setVideo(video);
+                    videoStat.setRecordDate(recordDate);
+                    result.put("message", "统计数据已保存");
+                }
+
+                // 设置统计数据
+                videoStat.setViewCount(Long.valueOf(statData.get("viewCount").toString()));
+                videoStat.setLikeCount(Long.valueOf(statData.get("likeCount").toString()));
+                videoStat.setCoinCount(Long.valueOf(statData.get("coinCount").toString()));
+                videoStat.setFavoriteCount(Long.valueOf(statData.get("favoriteCount").toString()));
+                videoStat.setDanmakuCount(Long.valueOf(statData.get("danmakuCount").toString()));
+                videoStat.setReplyCount(Long.valueOf(statData.get("replyCount").toString()));
+                videoStat.setShareCount(Long.valueOf(statData.get("shareCount").toString()));
+
                 videoStatRepository.save(videoStat);
-                result.put("message", "统计数据已保存");
+                result.put("success", true);
+                result.put("videoStat", videoStat);
+
+                System.out.println("成功保存视频统计: " + bvId + " - " + recordDate);
+            } else {
+                result.put("success", false);
+                result.put("message", "数据格式错误");
             }
 
-            result.put("success", true);
-            System.out.println("成功保存视频统计: " + bvId);
         } catch (Exception e) {
             System.err.println("保存视频统计失败: " + e.getMessage());
             result.put("success", false);

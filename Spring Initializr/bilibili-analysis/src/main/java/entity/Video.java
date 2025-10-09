@@ -23,8 +23,16 @@ public class Video {
     @Column(name = "publish_time")
     private LocalDateTime publishTime;
 
-    @Column(name = "video_partition")  // 修改字段名，避免使用MySQL关键字
+    @Column(name = "video_partition")
     private String videoPartition;
+
+    // 新增字段：封面URL
+    @Column(name = "cover_url", length = 500)
+    private String coverUrl;
+
+    // 新增字段：视频描述
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
     // Getter and Setter methods
     public Long getId() { return id; }
@@ -44,4 +52,11 @@ public class Video {
 
     public String getVideoPartition() { return videoPartition; }
     public void setVideoPartition(String videoPartition) { this.videoPartition = videoPartition; }
+
+    // 新增getter/setter
+    public String getCoverUrl() { return coverUrl; }
+    public void setCoverUrl(String coverUrl) { this.coverUrl = coverUrl; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 }

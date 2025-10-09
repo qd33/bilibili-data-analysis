@@ -9,4 +9,7 @@ public interface VideoStatRepository extends JpaRepository<VideoStat, Long> {
     List<VideoStat> findByVideoBvIdOrderByRecordDateAsc(String bvId);
     List<VideoStat> findByVideoBvIdAndRecordDateBetween(String bvId, LocalDate startDate, LocalDate endDate);
     void deleteByVideoBvId(String bvId);
+
+    // 🆕 需要添加的方法
+    List<VideoStat> findByVideoBvId(String bvId);
 }
