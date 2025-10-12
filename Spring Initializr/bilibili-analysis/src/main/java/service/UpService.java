@@ -8,4 +8,8 @@ public interface UpService {
     Map<String, Object> saveUp(Object up);
     Map<String, Object> saveUpStat(Object upStat);
     Object getUpTrend(String uid);
+
+    // 🆕 添加爬虫相关方法
+    Map<String, Object> triggerUpCrawl(String uid);
+    Map<String, Object> getUpWithVideos(String uid);
 }

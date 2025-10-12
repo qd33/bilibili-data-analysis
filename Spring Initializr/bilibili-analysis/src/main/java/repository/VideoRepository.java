@@ -10,9 +10,10 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     boolean existsByBvId(String bvId);
     List<Video> findByUpUid(String upUid);
 
-    // ❌ 原来的问题代码：
-    // List<Video> findByPartition(String partition);
-
-    // ✅ 修改为：
+    // ✅ 修复分区查询方法
     List<Video> findByVideoPartition(String videoPartition);
+
+    // 🆕 添加新的查询方法
+    List<Video> findByVideoPartitionOrderByPublishTimeDesc(String videoPartition);
+    List<Video> findByUpUidOrderByPublishTimeDesc(String upUid);
 }

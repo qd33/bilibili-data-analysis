@@ -1,45 +1,54 @@
 package com.qd33.bilibili_analysis.controller;
 
-import com.qd33.bilibili_analysis.entity.Up;
-import com.qd33.bilibili_analysis.service.UpService;
+import com.qd33.bilibili_analysis.service.PythonCrawlerService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/up")
 public class UpController {
 
     @Autowired
-    private UpService upService;
+    private PythonCrawlerService pythonCrawlerService;
 
-    // 🆕 添加测试方法
-    @GetMapping("/test")
-    public String test() {
-        return "UpController 正常工作！";
+    @GetMapping("/checkStatus")
+    public Map<String, Object> checkCrawlerStatus() {
+        Map<String, Object> statusResult = pythonCrawlerService.checkCrawlerStatus();
+
+        // 安全地处理嵌套的 Map
+        Object pythonEnvObj = statusResult.get("pythonEnvironment");
+        if (pythonEnvObj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> pythonEnvironment = (Map<String, Object>) pythonEnvObj;
+            // 使用 pythonEnvironment
+            System.out.println("Python环境状态: " + pythonEnvironment.get("success"));
+        }
+
+        Object scriptPathObj = statusResult.get("scriptPath");
+        if (scriptPathObj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> scriptPath = (Map<String, Object>) scriptPathObj;
+            // 使用 scriptPath
+            System.out.println("脚本路径状态: " + scriptPath.get("success"));
+        }
+
+        return statusResult;
     }
 
-    // 根据UID查询UP主详情
-    @GetMapping("/{uid}")
-    public ResponseEntity<?> getUp(@PathVariable String uid) {
-        return ResponseEntity.ok(upService.getUpByUid(uid));
+    @PostMapping("/crawl")
+    public Map<String, Object> crawlUpData(@RequestParam String uid) {
+        return pythonCrawlerService.crawlUpData(uid);
     }
 
-    // 保存UP主信息
-    @PostMapping
-    public ResponseEntity<?> saveUp(@RequestBody Up up) {
-        return ResponseEntity.ok(upService.saveUp(up));
+    @GetMapping("/testPython")
+    public Map<String, Object> testPythonEnvironment() {
+        return pythonCrawlerService.checkPythonEnvironment();
     }
 
-    // 获取UP主粉丝增长趋势
-    @GetMapping("/{uid}/trend")
-    public ResponseEntity<?> getUpTrend(@PathVariable String uid) {
-        return ResponseEntity.ok(upService.getUpTrend(uid));
-    }
-
-    // 检查UP主是否存在
-    @GetMapping("/{uid}/exists")
-    public ResponseEntity<?> upExists(@PathVariable String uid) {
-        return ResponseEntity.ok(upService.upExists(uid));
+    @GetMapping("/testScriptPath")
+    public Map<String, Object> testScriptPath() {
+        return pythonCrawlerService.testPythonScriptPath();
     }
 }

@@ -16,7 +16,12 @@ public class CorsConfig {
         // 允许的前端地址
         config.addAllowedOrigin("http://localhost:5173"); // Vue开发服务器
         config.addAllowedOrigin("http://127.0.0.1:5173");
+        config.addAllowedOrigin("http://localhost:5174"); // Vite备用端口
+        config.addAllowedOrigin("http://127.0.0.1:5174");
         config.addAllowedOrigin("http://localhost:3000"); // 其他可能的端口
+
+        // 开发环境允许所有来源
+        config.addAllowedOriginPattern("*");
 
         // 允许的请求头
         config.addAllowedHeader("*");
@@ -27,6 +32,7 @@ public class CorsConfig {
         config.addAllowedMethod("PUT");
         config.addAllowedMethod("DELETE");
         config.addAllowedMethod("OPTIONS");
+        config.addAllowedMethod("HEAD");
 
         // 允许携带认证信息（如cookies）
         config.setAllowCredentials(true);
