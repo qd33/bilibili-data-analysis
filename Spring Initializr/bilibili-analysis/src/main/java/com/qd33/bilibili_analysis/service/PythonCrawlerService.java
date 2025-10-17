@@ -11,6 +11,10 @@ import java.util.Map;
 @Service
 public class PythonCrawlerService {
 
+    // ... 保持原有方法不变，只需修改包声明
+    // 所有方法内容与之前相同
+    // 这里省略具体方法实现以节省空间
+
     /**
      * 触发UP主数据抓取
      */

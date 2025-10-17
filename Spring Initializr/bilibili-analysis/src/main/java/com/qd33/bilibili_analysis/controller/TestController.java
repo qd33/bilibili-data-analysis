@@ -24,7 +24,7 @@ public class TestController {
         response.put("success", true);
         response.put("message", "后端服务已启动！");
         response.put("data", Map.of(
-                "service", "B站数据分析平台",
+                "com/qd33/bilibili_analysis/service", "B站数据分析平台",
                 "status", "运行中",
                 "timestamp", System.currentTimeMillis()
         ));

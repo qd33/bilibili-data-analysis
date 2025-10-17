@@ -1,11 +1,10 @@
 package com.qd33.bilibili_analysis.controller;
 
 import com.qd33.bilibili_analysis.entity.Video;
-import com.qd33.bilibili_analysis.entity.VideoStat;
-import com.qd33.bilibili_analysis.service.VideoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.qd33.bilibili_analysis.service.VideoService;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,31 +16,64 @@ public class VideoController {
     @Autowired
     private VideoService videoService;
 
-    // 🆕 测试接口
-    @GetMapping("/test")
-    public String test() {
-        return "VideoController 正常工作！";
+    // 🆕 调试接口：返回完整的视频数据结构
+    @GetMapping("/{bvId}/debug")
+    public ResponseEntity<?> getVideoDebug(@PathVariable String bvId) {
+        Map<String, Object> result = videoService.getVideoByBvId(bvId);
+
+        // 添加调试信息
+        if (Boolean.TRUE.equals(result.get("success"))) {
+            Video video = (Video) result.get("video");
+            System.out.println("🔍 调试视频数据: " + video.toString());
+
+            Map<String, Object> debugInfo = new HashMap<>();
+            debugInfo.put("success", true);
+            debugInfo.put("video", video);
+            debugInfo.put("fieldsCheck", Map.of(
+                    "title", video.getTitle() != null,
+                    "cover", video.getCoverUrl() != null,
+                    "description", video.getDescription() != null,
+                    "publishTime", video.getPublishTime() != null
+            ));
+            debugInfo.put("message", "字段检查完成");
+
+            return ResponseEntity.ok(debugInfo);
+        }
+
+        return ResponseEntity.ok(result);
     }
 
     // 根据BV号查询视频详情
     @GetMapping("/{bvId}")
     public ResponseEntity<?> getVideo(@PathVariable String bvId) {
-        return ResponseEntity.ok(videoService.getVideoByBvId(bvId));
+        Map<String, Object> result = videoService.getVideoByBvId(bvId);
+
+        // 添加日志输出，便于调试
+        if (Boolean.TRUE.equals(result.get("success"))) {
+            Video video = (Video) result.get("video");
+            System.out.println("🎬 返回视频数据 - 标题: " + video.getTitle());
+            System.out.println("🖼️ 返回视频数据 - 封面: " + video.getCoverUrl());
+        }
+
+        return ResponseEntity.ok(result);
     }
 
-    // 保存视频基本信息
+    // 其他方法保持不变...
+    @GetMapping("/test")
+    public String test() {
+        return "VideoController 正常工作！";
+    }
+
     @PostMapping
     public ResponseEntity<?> saveVideo(@RequestBody Video video) {
         return ResponseEntity.ok(videoService.saveVideo(video));
     }
 
-    // 获取视频数据趋势
     @GetMapping("/{bvId}/trend")
     public ResponseEntity<?> getVideoTrend(@PathVariable String bvId) {
         return ResponseEntity.ok(videoService.getVideoTrend(bvId));
     }
 
-    // 检查视频是否存在
     @GetMapping("/{bvId}/exists")
     public ResponseEntity<?> videoExists(@PathVariable String bvId) {
         Map<String, Object> result = new HashMap<>();
@@ -50,20 +82,15 @@ public class VideoController {
         return ResponseEntity.ok(result);
     }
 
-    // 🆕 保存视频统计数据
     @PostMapping("/{bvId}/stats")
     public ResponseEntity<?> saveVideoStats(@PathVariable String bvId, @RequestBody Map<String, Object> statData) {
-        // 这里需要先根据bvId获取视频，然后创建VideoStat对象
-        // 暂时简化处理，直接调用service
         return ResponseEntity.ok(videoService.saveVideoStat(statData));
     }
 
-    // 🆕 批量获取视频信息
     @GetMapping("/batch")
     public ResponseEntity<?> getVideosByPartition(@RequestParam String partition) {
         Map<String, Object> result = new HashMap<>();
         try {
-            // 这里需要调用Repository的findByVideoPartition方法
             result.put("success", true);
             result.put("partition", partition);
             result.put("message", "分区查询功能待实现");
@@ -74,7 +101,6 @@ public class VideoController {
         return ResponseEntity.ok(result);
     }
 
-    // 🆕 获取热门视频
     @GetMapping("/hot")
     public ResponseEntity<?> getHotVideos() {
         Map<String, Object> result = new HashMap<>();
@@ -84,7 +110,6 @@ public class VideoController {
         return ResponseEntity.ok(result);
     }
 
-    // 🆕 搜索视频
     @GetMapping("/search")
     public ResponseEntity<?> searchVideos(@RequestParam String keyword) {
         Map<String, Object> result = new HashMap<>();

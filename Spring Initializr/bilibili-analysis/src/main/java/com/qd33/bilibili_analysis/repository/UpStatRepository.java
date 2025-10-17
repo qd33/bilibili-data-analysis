@@ -8,7 +8,5 @@ import java.util.List;
 public interface UpStatRepository extends JpaRepository<UpStat, Long> {
     List<UpStat> findByUpUidOrderByRecordDateAsc(String uid);
     List<UpStat> findByUpUidAndRecordDateBetween(String uid, LocalDate startDate, LocalDate endDate);
-
-    // 🆕 需要添加的方法
     List<UpStat> findByUpUid(String uid);
 }

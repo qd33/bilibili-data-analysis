@@ -1,9 +1,9 @@
 package com.qd33.bilibili_analysis.service.impl;
 
-import com.qd33.bilibili_analysis.entity.Video;
-import com.qd33.bilibili_analysis.entity.VideoStat;
 import com.qd33.bilibili_analysis.repository.VideoRepository;
 import com.qd33.bilibili_analysis.repository.VideoStatRepository;
+import com.qd33.bilibili_analysis.entity.Video;
+import com.qd33.bilibili_analysis.entity.VideoStat;
 import com.qd33.bilibili_analysis.service.VideoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

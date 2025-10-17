@@ -4,9 +4,10 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "up_stat",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"up_id", "record_date"}))
+@Table(name = "up_stat")
 public class UpStat {
+    // ... 原有内容不变
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

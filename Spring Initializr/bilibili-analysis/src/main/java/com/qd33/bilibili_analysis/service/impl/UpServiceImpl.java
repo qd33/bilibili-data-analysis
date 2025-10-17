@@ -1,11 +1,11 @@
 package com.qd33.bilibili_analysis.service.impl;
 
-import com.qd33.bilibili_analysis.entity.Up;
-import com.qd33.bilibili_analysis.entity.UpStat;
 import com.qd33.bilibili_analysis.repository.UpRepository;
 import com.qd33.bilibili_analysis.repository.UpStatRepository;
 import com.qd33.bilibili_analysis.service.PythonCrawlerService;
 import com.qd33.bilibili_analysis.service.UpService;
+import com.qd33.bilibili_analysis.entity.Up;
+import com.qd33.bilibili_analysis.entity.UpStat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -205,8 +205,11 @@ public class UpServiceImpl implements UpService {
 
             // 🆕 这里应该从数据库查询该UP主的视频列表
             // 暂时使用模拟数据
-            result.put("videos", generateMockVideoList(uid));
+            result.put("videos", generateEnhancedMockVideoList(uid));
             result.put("videoCount", 8);
+            result.put("message", "成功获取UP主信息及视频列表");
+
+            System.out.println("✅ 获取UP主完整信息: " + uid);
 
         } catch (Exception e) {
             System.err.println("❌ 获取UP主视频列表失败: " + e.getMessage());
@@ -217,39 +220,65 @@ public class UpServiceImpl implements UpService {
         return result;
     }
 
-    // 🆕 生成模拟视频列表
-    private Object generateMockVideoList(String uid) {
-        return new Object[] {
-                Map.of(
-                        "bvId", "BV1A" + uid.substring(0, 6),
-                        "title", "【生活VLOG】测试视频1 - UP主" + uid,
-                        "viewCount", 15842,
-                        "likeCount", 1250,
-                        "coinCount", 580,
-                        "favoriteCount", 320,
-                        "publishTime", "2025-10-15T10:00:00",
-                        "partition", "生活"
-                ),
-                Map.of(
-                        "bvId", "BV1B" + uid.substring(0, 6),
-                        "title", "【科技测评】测试视频2 - UP主" + uid,
-                        "viewCount", 23467,
-                        "likeCount", 1890,
-                        "coinCount", 920,
-                        "favoriteCount", 650,
-                        "publishTime", "2025-10-10T14:30:00",
-                        "partition", "科技"
-                ),
-                Map.of(
-                        "bvId", "BV1C" + uid.substring(0, 6),
-                        "title", "【游戏实况】测试视频3 - UP主" + uid,
-                        "viewCount", 18753,
-                        "likeCount", 1420,
-                        "coinCount", 680,
-                        "favoriteCount", 420,
-                        "publishTime", "2025-10-05T20:15:00",
-                        "partition", "游戏"
-                )
-        };
+    // 🆕 修复的模拟视频列表生成 - 使用HashMap代替Map.of
+    private Object generateEnhancedMockVideoList(String uid) {
+        // 创建视频1
+        Map<String, Object> video1 = new HashMap<>();
+        video1.put("bvid", "BV1A" + (uid.length() >= 6 ? uid.substring(0, 6) : uid));
+        video1.put("title", "【生活VLOG】测试视频1 - UP主" + uid);
+        video1.put("pic", "https://example.com/cover1.jpg");
+        video1.put("play", 15842);
+        video1.put("view", 15842);
+        video1.put("viewCount", 15842);
+        video1.put("video_review", 1250);
+        video1.put("danmaku", 1250);
+        video1.put("danmakuCount", 1250);
+        video1.put("like", 1250);
+        video1.put("likeCount", 1250);
+        video1.put("duration", 360);
+        video1.put("pubdate", System.currentTimeMillis() - 86400000);
+        video1.put("publishTime", "2025-10-15T10:00:00");
+        video1.put("partition", "生活");
+        video1.put("description", "这是一个测试视频描述");
+
+        // 创建视频2
+        Map<String, Object> video2 = new HashMap<>();
+        video2.put("bvid", "BV1B" + (uid.length() >= 6 ? uid.substring(0, 6) : uid));
+        video2.put("title", "【科技测评】测试视频2 - UP主" + uid);
+        video2.put("pic", "https://example.com/cover2.jpg");
+        video2.put("play", 23467);
+        video2.put("view", 23467);
+        video2.put("viewCount", 23467);
+        video2.put("video_review", 1890);
+        video2.put("danmaku", 1890);
+        video2.put("danmakuCount", 1890);
+        video2.put("like", 1890);
+        video2.put("likeCount", 1890);
+        video2.put("duration", 420);
+        video2.put("pubdate", System.currentTimeMillis() - 172800000);
+        video2.put("publishTime", "2025-10-10T14:30:00");
+        video2.put("partition", "科技");
+        video2.put("description", "科技产品测评视频");
+
+        // 创建视频3
+        Map<String, Object> video3 = new HashMap<>();
+        video3.put("bvid", "BV1C" + (uid.length() >= 6 ? uid.substring(0, 6) : uid));
+        video3.put("title", "【游戏实况】测试视频3 - UP主" + uid);
+        video3.put("pic", "https://example.com/cover3.jpg");
+        video3.put("play", 18753);
+        video3.put("view", 18753);
+        video3.put("viewCount", 18753);
+        video3.put("video_review", 1420);
+        video3.put("danmaku", 1420);
+        video3.put("danmakuCount", 1420);
+        video3.put("like", 1420);
+        video3.put("likeCount", 1420);
+        video3.put("duration", 580);
+        video3.put("pubdate", System.currentTimeMillis() - 259200000);
+        video3.put("publishTime", "2025-10-05T20:15:00");
+        video3.put("partition", "游戏");
+        video3.put("description", "游戏实况录制");
+
+        return new Object[] { video1, video2, video3 };
     }
 }
