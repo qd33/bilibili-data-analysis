@@ -26,24 +26,52 @@ public class UpController {
     @Autowired
     private UpRepository upRepository;
 
-    // 使用DTO返回UP主信息，避免循环引用
     @GetMapping("/{uid}")
-    public UpDTO getUpByUid(@PathVariable String uid) {
+    public Map<String, Object> getUpByUid(@PathVariable String uid) {
         System.out.println("🔍 获取UP主信息: " + uid);
         try {
             Optional<Up> upOptional = upRepository.findByUid(uid);
+
             if (upOptional.isPresent()) {
                 Up up = upOptional.get();
                 UpDTO upDTO = DTOConverter.convertToUpDTO(up);
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("up", upDTO);
                 System.out.println("✅ 成功返回UP主DTO: " + upDTO.getName());
-                return upDTO;
+                return result;
             } else {
-                System.out.println("❌ UP主不存在: " + uid);
-                throw new RuntimeException("UP主不存在: " + uid);
+                System.out.println("🔄 UP主不存在，自动触发爬取: " + uid);
+                Map<String, Object> crawlResult = upService.triggerUpCrawl(uid);
+
+                if (Boolean.TRUE.equals(crawlResult.get("success"))) {
+                    upOptional = upRepository.findByUid(uid);
+                    if (upOptional.isPresent()) {
+                        Up up = upOptional.get();
+                        UpDTO upDTO = DTOConverter.convertToUpDTO(up);
+
+                        Map<String, Object> result = new HashMap<>();
+                        result.put("success", true);
+                        result.put("up", upDTO);
+                        result.put("message", "数据已自动爬取并加载");
+                        return result;
+                    }
+                }
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("code", "UP_NOT_EXIST");
+                result.put("message", "UP主不存在且自动爬取失败");
+                return result;
             }
         } catch (Exception e) {
             System.err.println("❌ 获取UP主信息失败: " + e.getMessage());
-            throw e;
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "获取UP主信息失败: " + e.getMessage());
+            return result;
         }
     }
 
