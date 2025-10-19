@@ -46,11 +46,16 @@ public class DTOConverter {
         dto.setDescription(video.getDescription());
         dto.setPublishTime(video.getPublishTime() != null ? video.getPublishTime().toString() : null);
         dto.setVideoPartition(video.getVideoPartition());
+        dto.setDuration(video.getDuration());
 
-        // 注意：统计数据需要从VideoStat获取，这里先设为0
-        dto.setPlay(0);
-        dto.setLike(0);
-        dto.setDanmaku(0);
+        // 🆕 关键修复：确保使用正确的Getter方法获取统计信息
+        dto.setPlay(video.getPlayCount() != null ? video.getPlayCount() : 0);
+        dto.setLike(video.getLikeCount() != null ? video.getLikeCount() : 0);
+        dto.setDanmaku(video.getDanmakuCount() != null ? video.getDanmakuCount() : 0);
+        dto.setComment(video.getCommentCount() != null ? video.getCommentCount() : 0);
+        dto.setCoin(video.getCoinCount() != null ? video.getCoinCount() : 0);
+        dto.setShare(video.getShareCount() != null ? video.getShareCount() : 0);
+        dto.setFavorite(video.getFavoriteCount() != null ? video.getFavoriteCount() : 0);
 
         return dto;
     }

@@ -9,6 +9,11 @@ public class VideoSimpleDTO {
     private Integer play;
     private Integer like;
     private Integer danmaku;
+    private Integer comment; // 🆕 评论数
+    private Integer coin;    // 🆕 投币数
+    private Integer share;   // 🆕 分享数
+    private Integer favorite; // 🆕 收藏数
+    private Integer duration; // 🆕 时长
     private String publishTime;
     private String videoPartition;
 
@@ -39,6 +44,21 @@ public class VideoSimpleDTO {
 
     public Integer getDanmaku() { return danmaku; }
     public void setDanmaku(Integer danmaku) { this.danmaku = danmaku; }
+
+    public Integer getComment() { return comment; }
+    public void setComment(Integer comment) { this.comment = comment; }
+
+    public Integer getCoin() { return coin; }
+    public void setCoin(Integer coin) { this.coin = coin; }
+
+    public Integer getShare() { return share; }
+    public void setShare(Integer share) { this.share = share; }
+
+    public Integer getFavorite() { return favorite; }
+    public void setFavorite(Integer favorite) { this.favorite = favorite; }
+
+    public Integer getDuration() { return duration; }
+    public void setDuration(Integer duration) { this.duration = duration; }
 
     public String getPublishTime() { return publishTime; }
     public void setPublishTime(String publishTime) { this.publishTime = publishTime; }

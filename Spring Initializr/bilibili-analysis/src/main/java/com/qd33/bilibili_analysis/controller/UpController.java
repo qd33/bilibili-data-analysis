@@ -26,61 +26,72 @@ public class UpController {
     @Autowired
     private UpRepository upRepository;
 
+    // 🆕 修复：当UP主不存在时自动触发爬取
     @GetMapping("/{uid}")
     public Map<String, Object> getUpByUid(@PathVariable String uid) {
         System.out.println("🔍 获取UP主信息: " + uid);
+        Map<String, Object> result = new HashMap<>();
         try {
             Optional<Up> upOptional = upRepository.findByUid(uid);
 
             if (upOptional.isPresent()) {
+                // UP主存在，直接返回
                 Up up = upOptional.get();
                 UpDTO upDTO = DTOConverter.convertToUpDTO(up);
-
-                Map<String, Object> result = new HashMap<>();
                 result.put("success", true);
                 result.put("up", upDTO);
                 System.out.println("✅ 成功返回UP主DTO: " + upDTO.getName());
-                return result;
             } else {
-                System.out.println("🔄 UP主不存在，自动触发爬取: " + uid);
-                Map<String, Object> crawlResult = upService.triggerUpCrawl(uid);
+                System.out.println("🔄 UP主不存在，尝试自动爬取: " + uid);
+
+                // 自动触发爬取
+                Map<String, Object> crawlResult = triggerUpCrawl(uid);
 
                 if (Boolean.TRUE.equals(crawlResult.get("success"))) {
+                    // 爬取成功，重新查询
+                    System.out.println("🔄 爬取成功，重新查询数据库...");
                     upOptional = upRepository.findByUid(uid);
                     if (upOptional.isPresent()) {
                         Up up = upOptional.get();
                         UpDTO upDTO = DTOConverter.convertToUpDTO(up);
-
-                        Map<String, Object> result = new HashMap<>();
                         result.put("success", true);
                         result.put("up", upDTO);
-                        result.put("message", "数据已自动爬取并加载");
-                        return result;
+                        result.put("message", "UP主数据已自动爬取并返回");
+                        result.put("autoCrawled", true);
+                        System.out.println("✅ 自动爬取成功，返回UP主: " + upDTO.getName());
+                    } else {
+                        result.put("success", false);
+                        result.put("message", "UP主不存在且爬取后仍未找到");
+                        System.out.println("❌ 自动爬取后仍未找到UP主: " + uid);
                     }
+                } else {
+                    result.put("success", false);
+                    result.put("message", "UP主不存在且自动爬取失败: " + crawlResult.get("message"));
+                    System.out.println("❌ 自动爬取失败: " + crawlResult.get("message"));
                 }
-
-                Map<String, Object> result = new HashMap<>();
-                result.put("success", false);
-                result.put("code", "UP_NOT_EXIST");
-                result.put("message", "UP主不存在且自动爬取失败");
-                return result;
             }
         } catch (Exception e) {
             System.err.println("❌ 获取UP主信息失败: " + e.getMessage());
-
-            Map<String, Object> result = new HashMap<>();
             result.put("success", false);
             result.put("message", "获取UP主信息失败: " + e.getMessage());
-            return result;
         }
+        return result;
     }
 
-    // 🆕 检查UP主是否存在
+    // 🆕 检查UP主是否存在 - 也支持自动爬取
     @GetMapping("/{uid}/exists")
     public Map<String, Object> checkUpExists(@PathVariable String uid) {
         Map<String, Object> result = new HashMap<>();
         try {
             boolean exists = upService.upExists(uid);
+
+            if (!exists) {
+                System.out.println("🔄 UP主不存在，尝试自动爬取: " + uid);
+                Map<String, Object> crawlResult = triggerUpCrawl(uid);
+                exists = Boolean.TRUE.equals(crawlResult.get("success")) && upService.upExists(uid);
+                result.put("autoCrawled", true);
+            }
+
             result.put("success", true);
             result.put("exists", exists);
             result.put("uid", uid);
@@ -93,17 +104,37 @@ public class UpController {
         return result;
     }
 
-    // 🆕 获取UP主视频列表
+    // 🆕 获取UP主视频列表 - 支持自动爬取
     @GetMapping("/{uid}/videos")
     public Map<String, Object> getUpVideos(@PathVariable String uid) {
         System.out.println("🎬 获取UP主视频列表: " + uid);
+
+        // 首先检查UP主是否存在，不存在则自动爬取
+        if (!upService.upExists(uid)) {
+            System.out.println("🔄 UP主不存在，先自动爬取: " + uid);
+            Map<String, Object> crawlResult = triggerUpCrawl(uid);
+            if (!Boolean.TRUE.equals(crawlResult.get("success"))) {
+                return crawlResult; // 返回爬取失败的信息
+            }
+        }
+
         return upService.getUpWithVideos(uid);
     }
 
-    // 🆕 获取UP主完整信息（包含视频）
+    // 🆕 获取UP主完整信息（包含视频）- 支持自动爬取
     @GetMapping("/{uid}/detail")
     public Map<String, Object> getUpDetailWithVideos(@PathVariable String uid) {
         System.out.println("📊 获取UP主完整信息: " + uid);
+
+        // 首先检查UP主是否存在，不存在则自动爬取
+        if (!upService.upExists(uid)) {
+            System.out.println("🔄 UP主不存在，先自动爬取: " + uid);
+            Map<String, Object> crawlResult = triggerUpCrawl(uid);
+            if (!Boolean.TRUE.equals(crawlResult.get("success"))) {
+                return crawlResult; // 返回爬取失败的信息
+            }
+        }
+
         return upService.getUpWithVideos(uid);
     }
 
@@ -112,6 +143,15 @@ public class UpController {
     public Map<String, Object> getUpTrend(@PathVariable String uid) {
         Map<String, Object> result = new HashMap<>();
         try {
+            // 首先检查UP主是否存在，不存在则自动爬取
+            if (!upService.upExists(uid)) {
+                System.out.println("🔄 UP主不存在，先自动爬取: " + uid);
+                Map<String, Object> crawlResult = triggerUpCrawl(uid);
+                if (!Boolean.TRUE.equals(crawlResult.get("success"))) {
+                    return crawlResult; // 返回爬取失败的信息
+                }
+            }
+
             Object trendData = upService.getUpTrend(uid);
             result.put("success", true);
             result.put("trend", trendData);
@@ -127,24 +167,7 @@ public class UpController {
 
     @GetMapping("/checkStatus")
     public Map<String, Object> checkCrawlerStatus() {
-        Map<String, Object> statusResult = pythonCrawlerService.checkCrawlerStatus();
-
-        // 安全地处理嵌套的 Map
-        Object pythonEnvObj = statusResult.get("pythonEnvironment");
-        if (pythonEnvObj instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> pythonEnvironment = (Map<String, Object>) pythonEnvObj;
-            System.out.println("Python环境状态: " + pythonEnvironment.get("success"));
-        }
-
-        Object scriptPathObj = statusResult.get("scriptPath");
-        if (scriptPathObj instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> scriptPath = (Map<String, Object>) scriptPathObj;
-            System.out.println("脚本路径状态: " + scriptPath.get("success"));
-        }
-
-        return statusResult;
+        return pythonCrawlerService.checkCrawlerStatus();
     }
 
     @PostMapping("/crawl")

@@ -2,6 +2,7 @@ package com.qd33.bilibili_analysis.entity;
 
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,35 +13,66 @@ public class Video {
     private Long id;
 
     @Column(name = "bv_id", unique = true, nullable = false)
-    @JsonProperty("bvid")  // 统一前端字段名
+    @JsonProperty("bvid")
     private String bvId;
 
     @Column(name = "title")
-    @JsonProperty("title")  // 明确指定序列化字段名
+    @JsonProperty("title")
     private String title;
 
     @ManyToOne
     @JoinColumn(name = "up_id")
-    @JsonProperty("up")  // 确保UP主信息正确序列化
+    @JsonIgnore
     private Up up;
 
     @Column(name = "publish_time")
-    @JsonProperty("publishTime")  // 统一时间字段名
+    @JsonProperty("publishTime")
     private LocalDateTime publishTime;
 
     @Column(name = "video_partition")
-    @JsonProperty("partition")  // 简化字段名
+    @JsonProperty("partition")
     private String videoPartition;
 
-    // 新增字段：封面URL - 重点修改
     @Column(name = "cover_url", length = 500)
-    @JsonProperty("cover")  // 统一前端字段名为cover
+    @JsonProperty("cover")
     private String coverUrl;
 
-    // 新增字段：视频描述
     @Column(name = "description", columnDefinition = "TEXT")
-    @JsonProperty("description")  // 确保描述字段序列化
+    @JsonProperty("description")
     private String description;
+
+    // 🆕 修复：确保字段名与数据库完全匹配
+    @Column(name = "play_count")
+    @JsonProperty("play")
+    private Integer playCount = 0;
+
+    @Column(name = "like_count")
+    @JsonProperty("like")
+    private Integer likeCount = 0;
+
+    @Column(name = "danmaku_count")
+    @JsonProperty("danmaku")
+    private Integer danmakuCount = 0;
+
+    @Column(name = "comment_count")
+    @JsonProperty("comment")
+    private Integer commentCount = 0;
+
+    @Column(name = "coin_count")
+    @JsonProperty("coin")
+    private Integer coinCount = 0;
+
+    @Column(name = "share_count")
+    @JsonProperty("share")
+    private Integer shareCount = 0;
+
+    @Column(name = "favorite_count")
+    @JsonProperty("favorite")
+    private Integer favoriteCount = 0;
+
+    @Column(name = "duration")
+    @JsonProperty("duration")
+    private Integer duration = 0;
 
     // Getter and Setter methods
     public Long getId() { return id; }
@@ -67,7 +99,63 @@ public class Video {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    // 添加toString方法便于调试
+    // 🆕 修复：确保Getter方法正确映射到JSON字段
+    public Integer getPlayCount() {
+        return playCount != null ? playCount : 0;
+    }
+    public void setPlayCount(Integer playCount) {
+        this.playCount = playCount != null ? playCount : 0;
+    }
+
+    public Integer getLikeCount() {
+        return likeCount != null ? likeCount : 0;
+    }
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount != null ? likeCount : 0;
+    }
+
+    public Integer getDanmakuCount() {
+        return danmakuCount != null ? danmakuCount : 0;
+    }
+    public void setDanmakuCount(Integer danmakuCount) {
+        this.danmakuCount = danmakuCount != null ? danmakuCount : 0;
+    }
+
+    public Integer getCommentCount() {
+        return commentCount != null ? commentCount : 0;
+    }
+    public void setCommentCount(Integer commentCount) {
+        this.commentCount = commentCount != null ? commentCount : 0;
+    }
+
+    public Integer getCoinCount() {
+        return coinCount != null ? coinCount : 0;
+    }
+    public void setCoinCount(Integer coinCount) {
+        this.coinCount = coinCount != null ? coinCount : 0;
+    }
+
+    public Integer getShareCount() {
+        return shareCount != null ? shareCount : 0;
+    }
+    public void setShareCount(Integer shareCount) {
+        this.shareCount = shareCount != null ? shareCount : 0;
+    }
+
+    public Integer getFavoriteCount() {
+        return favoriteCount != null ? favoriteCount : 0;
+    }
+    public void setFavoriteCount(Integer favoriteCount) {
+        this.favoriteCount = favoriteCount != null ? favoriteCount : 0;
+    }
+
+    public Integer getDuration() {
+        return duration != null ? duration : 0;
+    }
+    public void setDuration(Integer duration) {
+        this.duration = duration != null ? duration : 0;
+    }
+
     @Override
     public String toString() {
         return "Video{" +
@@ -78,6 +166,14 @@ public class Video {
                 ", description='" + description + '\'' +
                 ", publishTime=" + publishTime +
                 ", videoPartition='" + videoPartition + '\'' +
+                ", playCount=" + playCount +
+                ", likeCount=" + likeCount +
+                ", danmakuCount=" + danmakuCount +
+                ", commentCount=" + commentCount +
+                ", coinCount=" + coinCount +
+                ", shareCount=" + shareCount +
+                ", favoriteCount=" + favoriteCount +
+                ", duration=" + duration +
                 '}';
     }
 }

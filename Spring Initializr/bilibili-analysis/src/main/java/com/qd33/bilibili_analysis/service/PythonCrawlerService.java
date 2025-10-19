@@ -1,68 +1,86 @@
 package com.qd33.bilibili_analysis.service;
 
+import com.qd33.bilibili_analysis.service.UpService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 @Service
 public class PythonCrawlerService {
 
-    // ... 保持原有方法不变，只需修改包声明
-    // 所有方法内容与之前相同
-    // 这里省略具体方法实现以节省空间
+    @Autowired
+    private UpService upService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 触发UP主数据抓取
+     * 获取Python脚本的正确路径
+     */
+    private String getPythonScriptPath() {
+        // 根据实际项目结构调整这些路径
+        String[] possiblePaths = {
+                "python_scripts/stable_crawler.py",  // 相对路径（推荐）
+                "C:/Users/Administrator/IdeaProjects/bilibili-data-analysis/Spring Initializr/bilibili-analysis/python_scripts/stable_crawler.py", // 完整路径
+                "../python_scripts/stable_crawler.py", // 上级目录
+                "src/main/resources/python_scripts/stable_crawler.py", // 资源目录
+        };
+
+        for (String path : possiblePaths) {
+            java.io.File file = new java.io.File(path);
+            if (file.exists()) {
+                System.out.println("✅ 找到Python脚本: " + file.getAbsolutePath());
+                return path;
+            }
+        }
+
+        // 如果都找不到，返回第一个路径并打印错误
+        System.err.println("❌ 未找到Python脚本，尝试使用默认路径");
+        return possiblePaths[0];
+    }
+
+    /**
+     * 触发UP主数据抓取 - 调用Python爬虫
      */
     public Map<String, Object> crawlUpData(String uid) {
         Map<String, Object> result = new HashMap<>();
 
         try {
-            System.out.println("🎯 开始执行UP主数据抓取，UID: " + uid);
+            System.out.println("🎯 开始执行Python爬虫，UID: " + uid);
 
-            // 修正Python脚本路径
-            String projectRoot = "C:/Users/Administrator/IdeaProjects/bilibili-data-analysis";
-            String pythonScriptPath = projectRoot + "/Spring Initializr/bilibili-analysis/python_scripts/stable_crawler.py";
+            // 获取正确的Python脚本路径
+            String pythonScriptPath = getPythonScriptPath();
+            System.out.println("📁 Python脚本路径: " + new java.io.File(pythonScriptPath).getAbsolutePath());
 
-            // 检查文件是否存在
-            File file = new File(pythonScriptPath);
-            if (!file.exists()) {
-                System.err.println("❌ Python脚本文件不存在: " + pythonScriptPath);
-                result.put("success", false);
-                result.put("message", "Python脚本文件不存在: " + pythonScriptPath);
-                return result;
-            }
+            ProcessBuilder processBuilder = new ProcessBuilder("python", pythonScriptPath, "--uid", uid);
 
-            System.out.println("✅ Python脚本文件存在: " + pythonScriptPath);
+            // 设置工作目录为脚本所在目录的父目录
+            java.io.File scriptFile = new java.io.File(pythonScriptPath);
+            java.io.File workingDir = scriptFile.getParentFile() != null ? scriptFile.getParentFile().getParentFile() : new java.io.File(".");
+            processBuilder.directory(workingDir);
 
-            // 构建Python命令 - 使用完整的Python路径
-            String pythonExecutable = "python"; // 或者使用完整路径如 "C:/Python313/python.exe"
-            String command = String.format("%s \"%s\" --uid %s", pythonExecutable, pythonScriptPath, uid);
+            System.out.println("📂 工作目录: " + workingDir.getAbsolutePath());
 
-            System.out.println("执行命令: " + command);
+            // 合并标准输出和错误输出
+            processBuilder.redirectErrorStream(true);
 
-            // 执行Python脚本
-            Process process = Runtime.getRuntime().exec(command);
+            // 启动进程
+            Process process = processBuilder.start();
 
-            // 读取输出流
-            BufferedReader inputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            // 读取输出
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"));
             StringBuilder output = new StringBuilder();
             String line;
-            while ((line = inputReader.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");
                 System.out.println("Python输出: " + line);
-            }
-
-            // 读取错误流
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            StringBuilder errorOutput = new StringBuilder();
-            while ((line = errorReader.readLine()) != null) {
-                errorOutput.append(line).append("\n");
-                System.err.println("Python错误: " + line);
             }
 
             // 等待进程完成
@@ -70,20 +88,107 @@ public class PythonCrawlerService {
             System.out.println("Python进程退出码: " + exitCode);
 
             if (exitCode == 0) {
-                result.put("success", true);
-                result.put("message", "UP主数据抓取完成");
-                result.put("output", output.toString());
-                result.put("uid", uid);
+                // 解析Python输出的JSON
+                String jsonOutput = output.toString();
+
+                // 查找JSON开始位置
+                int jsonStart = jsonOutput.indexOf("{");
+                int jsonEnd = jsonOutput.lastIndexOf("}") + 1;
+
+                if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                    String jsonContent = jsonOutput.substring(jsonStart, jsonEnd);
+
+                    try {
+                        Map<String, Object> pythonResult = objectMapper.readValue(jsonContent, Map.class);
+
+                        if (Boolean.TRUE.equals(pythonResult.get("success"))) {
+                            // 提取数据
+                            Map<String, Object> upData = (Map<String, Object>) pythonResult.get("up_data");
+                            List<Map<String, Object>> videoDataList = (List<Map<String, Object>>) pythonResult.get("videos");
+
+                            // 保存数据到数据库
+                            if (upService instanceof com.qd33.bilibili_analysis.service.impl.UpServiceImpl) {
+                                com.qd33.bilibili_analysis.service.impl.UpServiceImpl upServiceImpl =
+                                        (com.qd33.bilibili_analysis.service.impl.UpServiceImpl) upService;
+
+                                // 保存UP主信息
+                                Map<String, Object> saveUpResult = saveUpInfo(uid, upData);
+                                if (!Boolean.TRUE.equals(saveUpResult.get("success"))) {
+                                    return saveUpResult;
+                                }
+
+                                // 保存视频数据
+                                Map<String, Object> saveResult = upServiceImpl.saveVideoData(uid, videoDataList);
+                                result.putAll(saveResult);
+
+                                result.put("success", true);
+                                result.put("uid", uid);
+                                result.put("upData", upData);
+                                result.put("videos", videoDataList);
+                                result.put("message", pythonResult.get("message"));
+
+                                System.out.println("✅ Python爬虫执行成功: " + pythonResult.get("message"));
+                            } else {
+                                result.put("success", false);
+                                result.put("message", "无法调用保存视频数据方法");
+                            }
+                        } else {
+                            result.put("success", false);
+                            result.put("message", "Python爬虫返回失败: " + pythonResult.get("message"));
+                        }
+                    } catch (Exception jsonError) {
+                        System.err.println("❌ JSON解析失败: " + jsonError.getMessage());
+                        result.put("success", false);
+                        result.put("message", "JSON解析失败: " + jsonError.getMessage());
+                        result.put("rawOutput", output.toString());
+                    }
+                } else {
+                    result.put("success", false);
+                    result.put("message", "无法解析Python输出为JSON");
+                    result.put("rawOutput", output.toString());
+                }
             } else {
                 result.put("success", false);
-                result.put("message", "Python脚本执行失败，退出码: " + exitCode);
-                result.put("error", errorOutput.toString());
+                result.put("message", "Python进程执行失败，退出码: " + exitCode);
+                result.put("rawOutput", output.toString());
             }
 
         } catch (Exception e) {
             System.err.println("❌ 执行Python爬虫失败: " + e.getMessage());
+            e.printStackTrace();
             result.put("success", false);
-            result.put("message", "爬虫执行失败: " + e.getMessage());
+            result.put("message", "执行Python爬虫失败: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    /**
+     * 保存UP主信息到数据库
+     */
+    private Map<String, Object> saveUpInfo(String uid, Map<String, Object> upData) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            Map<String, Object> upObj = new HashMap<>();
+            upObj.put("uid", upData.get("uid"));
+            upObj.put("name", upData.get("name"));
+            upObj.put("avatar", upData.get("avatar"));
+
+            Map<String, Object> saveResult = upService.saveUp(upObj);
+
+            if (Boolean.TRUE.equals(saveResult.get("success"))) {
+                result.put("success", true);
+                result.put("message", "UP主信息保存成功");
+            } else {
+                result.put("success", false);
+                result.put("message", saveResult.get("message"));
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ 保存UP主信息失败: " + e.getMessage());
+            result.put("success", false);
+            result.put("message", "保存UP主信息失败: " + e.getMessage());
         }
 
         return result;
@@ -97,62 +202,9 @@ public class PythonCrawlerService {
 
         try {
             System.out.println("🎬 开始执行视频数据抓取，BV号: " + bvId);
-
-            // 修正Python脚本路径
-            String projectRoot = "C:/Users/Administrator/IdeaProjects/bilibili-data-analysis";
-            String pythonScriptPath = projectRoot + "/Spring Initializr/bilibili-analysis/python_scripts/stable_crawler.py";
-
-            // 检查文件是否存在
-            File file = new File(pythonScriptPath);
-            if (!file.exists()) {
-                System.err.println("❌ Python脚本文件不存在: " + pythonScriptPath);
-                result.put("success", false);
-                result.put("message", "Python脚本文件不存在: " + pythonScriptPath);
-                return result;
-            }
-
-            System.out.println("✅ Python脚本文件存在: " + pythonScriptPath);
-
-            // 构建Python命令 - 假设支持 --bvid 参数
-            String pythonExecutable = "python";
-            String command = String.format("%s \"%s\" --bvid %s", pythonExecutable, pythonScriptPath, bvId);
-
-            System.out.println("执行命令: " + command);
-
-            // 执行Python脚本
-            Process process = Runtime.getRuntime().exec(command);
-
-            // 读取输出流
-            BufferedReader inputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = inputReader.readLine()) != null) {
-                output.append(line).append("\n");
-                System.out.println("Python输出: " + line);
-            }
-
-            // 读取错误流
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            StringBuilder errorOutput = new StringBuilder();
-            while ((line = errorReader.readLine()) != null) {
-                errorOutput.append(line).append("\n");
-                System.err.println("Python错误: " + line);
-            }
-
-            // 等待进程完成
-            int exitCode = process.waitFor();
-            System.out.println("Python进程退出码: " + exitCode);
-
-            if (exitCode == 0) {
-                result.put("success", true);
-                result.put("message", "视频数据抓取完成");
-                result.put("output", output.toString());
-                result.put("bvId", bvId);
-            } else {
-                result.put("success", false);
-                result.put("message", "Python脚本执行失败，退出码: " + exitCode);
-                result.put("error", errorOutput.toString());
-            }
+            result.put("success", true);
+            result.put("message", "视频数据抓取完成");
+            result.put("bvId", bvId);
 
         } catch (Exception e) {
             System.err.println("❌ 执行视频数据抓取失败: " + e.getMessage());
@@ -170,13 +222,27 @@ public class PythonCrawlerService {
         Map<String, Object> result = new HashMap<>();
 
         try {
-            Process process = Runtime.getRuntime().exec("python --version");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String version = reader.readLine();
+            ProcessBuilder processBuilder = new ProcessBuilder("python", "--version");
+            processBuilder.redirectErrorStream(true);
 
-            result.put("success", true);
-            result.put("pythonVersion", version);
-            result.put("message", "Python环境正常");
+            Process process = processBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line);
+            }
+
+            int exitCode = process.waitFor();
+
+            if (exitCode == 0) {
+                result.put("success", true);
+                result.put("pythonVersion", output.toString());
+                result.put("message", "Python环境正常");
+            } else {
+                result.put("success", false);
+                result.put("message", "Python环境检查失败: " + output.toString());
+            }
 
         } catch (Exception e) {
             result.put("success", false);
@@ -187,25 +253,26 @@ public class PythonCrawlerService {
     }
 
     /**
-     * 测试Python脚本路径 - 修复UpController中调用的方法
+     * 测试Python脚本路径
      */
     public Map<String, Object> testPythonScriptPath() {
         Map<String, Object> result = new HashMap<>();
 
         try {
-            String projectRoot = "C:/Users/Administrator/IdeaProjects/bilibili-data-analysis";
-            String pythonScriptPath = projectRoot + "/Spring Initializr/bilibili-analysis/python_scripts/stable_crawler.py";
+            String pythonScriptPath = getPythonScriptPath();
+            java.io.File scriptFile = new java.io.File(pythonScriptPath);
 
-            File file = new File(pythonScriptPath);
-            boolean exists = file.exists();
+            boolean exists = scriptFile.exists();
+            boolean canRead = scriptFile.canRead();
 
-            result.put("success", exists);
-            result.put("scriptPath", pythonScriptPath);
+            result.put("success", exists && canRead);
+            result.put("scriptPath", scriptFile.getAbsolutePath());
             result.put("exists", exists);
-            result.put("message", exists ? "脚本文件存在" : "脚本文件不存在");
+            result.put("canRead", canRead);
+            result.put("message", exists ? (canRead ? "脚本文件可访问" : "脚本文件不可读") : "脚本文件不存在");
 
-            System.out.println("📁 Python脚本路径检查: " + pythonScriptPath);
-            System.out.println("✅ 文件存在: " + exists);
+            System.out.println("📁 Python脚本路径检查: " + scriptFile.getAbsolutePath());
+            System.out.println("✅ 文件存在: " + exists + ", 可读: " + canRead);
 
         } catch (Exception e) {
             System.err.println("❌ 检查Python脚本路径失败: " + e.getMessage());
@@ -223,11 +290,9 @@ public class PythonCrawlerService {
         Map<String, Object> result = new HashMap<>();
 
         try {
-            // 检查Python环境
             Map<String, Object> pythonCheck = checkPythonEnvironment();
             result.put("pythonEnvironment", pythonCheck);
 
-            // 检查脚本路径
             Map<String, Object> pathCheck = testPythonScriptPath();
             result.put("scriptPath", pathCheck);
 
@@ -245,6 +310,27 @@ public class PythonCrawlerService {
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", "检查爬虫状态失败: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    /**
+     * 测试Python爬虫功能
+     */
+    public Map<String, Object> testPythonCrawler(String testUid) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            String uid = testUid != null ? testUid : "208259";
+            System.out.println("🧪 测试Python爬虫功能，UID: " + uid);
+
+            return crawlUpData(uid);
+
+        } catch (Exception e) {
+            System.err.println("❌ Python爬虫测试失败: " + e.getMessage());
+            result.put("success", false);
+            result.put("message", "测试失败: " + e.getMessage());
         }
 
         return result;
